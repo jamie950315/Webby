@@ -1,0 +1,5 @@
+{
+  "name": "Webby",
+  "description": "An all-purpose evolutionary website builder that uses AI to generate and mutate website designs through a tournament-style selection process.",
+  "requestFramePermissions": []
+}
