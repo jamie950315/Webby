@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { enhancePrompt, generateCandidateStream, Candidate, mutateCandidateStream } from './services/gemini';
-import { Loader2, Wand2, Play, Download, Copy, RefreshCw, ChevronRight, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key } from 'lucide-react';
+import { Loader2, Wand2, Play, Download, Copy, RefreshCw, ChevronRight, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { languages, translations, getBrowserLanguage } from './i18n';
 
@@ -24,18 +24,18 @@ const BracketNodeComponent = ({ node, onPreview, finalWinner, isWinnerOfMatch, t
   const isFinalWinnerPath = finalWinner && node.candidate === finalWinner;
   
   const card = (
-    <div className={`w-32 p-3 border rounded-xl shadow-sm text-center bg-white relative z-10 transition-all duration-500 
+    <div className={`w-32 p-3 border rounded-xl shadow-sm text-center bg-white dark:bg-zinc-950 relative z-10 transition-all duration-500 
       ${isFinalWinnerPath ? 'border-orange-500 ring-2 ring-orange-500 ring-offset-2' : 
         isWinnerOfMatch ? 'border-green-500 ring-1 ring-green-500' : 
-        node.candidate && node.candidate !== 'generate' ? 'border-indigo-300 ring-1 ring-indigo-300' : 
-        'border-zinc-200'}`}>
-      <div className="text-xs font-medium text-zinc-500 mb-1">{isLeaf ? t.variation : t.winner}</div>
+        node.candidate && node.candidate !== 'generate' ? 'border-indigo-300 dark:border-indigo-500/50 ring-1 ring-indigo-300 dark:ring-indigo-500/50' : 
+        'border-zinc-200 dark:border-zinc-800'}`}>
+      <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">{isLeaf ? t.variation : t.winner}</div>
       {node.candidate && node.candidate !== 'generate' ? (
-        <button onClick={() => onPreview(node.candidate as Candidate)} className={`text-sm font-semibold hover:underline ${isFinalWinnerPath ? 'text-orange-600' : isWinnerOfMatch ? 'text-green-600' : 'text-indigo-600'}`}>
+        <button onClick={() => onPreview(node.candidate as Candidate)} className={`text-sm font-semibold hover:underline ${isFinalWinnerPath ? 'text-orange-600' : isWinnerOfMatch ? 'text-green-600' : 'text-indigo-600 dark:text-indigo-400'}`}>
           {t.preview}
         </button>
       ) : (
-        <div className="text-sm text-zinc-400">{t.tbd}</div>
+        <div className="text-sm text-zinc-400 dark:text-zinc-500">{t.tbd}</div>
       )}
     </div>
   );
@@ -54,7 +54,7 @@ const BracketNodeComponent = ({ node, onPreview, finalWinner, isWinnerOfMatch, t
     <div className="flex items-center">
       <div className="flex flex-col justify-center pr-6 py-4 relative">
         {/* Vertical connector lines */}
-        <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-zinc-300"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-zinc-300 dark:bg-zinc-700"></div>
         {leftIsWinnerPath && (
           <div className="absolute right-0 top-0 h-1/2 w-[2px] bg-orange-500 z-20"></div>
         )}
@@ -67,7 +67,7 @@ const BracketNodeComponent = ({ node, onPreview, finalWinner, isWinnerOfMatch, t
           <BracketNodeComponent node={node.right!} onPreview={onPreview} finalWinner={finalWinner} isWinnerOfMatch={rightIsWinner} t={t} />
         </div>
       </div>
-      <div className={`w-6 h-[2px] transition-colors duration-500 ${isFinalWinnerPath ? 'bg-orange-500' : 'bg-zinc-300'}`}></div>
+      <div className={`w-6 h-[2px] transition-colors duration-500 ${isFinalWinnerPath ? 'bg-orange-500' : 'bg-zinc-300 dark:bg-zinc-700'}`}></div>
       {card}
     </div>
   );
@@ -151,7 +151,7 @@ function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosoph
 
   if (!candidate) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-zinc-50">
+      <div className="flex-1 flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
         <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
       </div>
     );
@@ -160,17 +160,17 @@ function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosoph
   return (
     <div className="flex-1 flex flex-col relative h-full">
       {/* Toolbar */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-white/90 backdrop-blur p-1 rounded-lg shadow-sm border border-zinc-200">
+      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-white/90 backdrop-blur p-1 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800">
         <button
           onClick={() => setViewMode('preview')}
-          className={`p-2 rounded-md transition-colors ${viewMode === 'preview' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900'}`}
+          className={`p-2 rounded-md transition-colors ${viewMode === 'preview' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'}`}
           title="Preview"
         >
           <Layout className="w-4 h-4" />
         </button>
         <button
           onClick={() => setViewMode('code')}
-          className={`p-2 rounded-md transition-colors ${viewMode === 'code' ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-900'}`}
+          className={`p-2 rounded-md transition-colors ${viewMode === 'code' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50'}`}
           title="Code"
         >
           <Code2 className="w-4 h-4" />
@@ -178,7 +178,7 @@ function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosoph
       </div>
 
       {/* Content Area */}
-      <div className={`flex-1 relative bg-white overflow-hidden border-4 transition-colors duration-500 ${isWinner ? 'border-green-500' : 'border-transparent'}`}>
+      <div className={`flex-1 relative bg-white dark:bg-zinc-950 overflow-hidden border-4 transition-colors duration-500 ${isWinner ? 'border-green-500' : 'border-transparent'}`}>
         {viewMode === 'preview' ? (
           <iframe 
             srcDoc={getIframeContent(candidate, lang)}
@@ -187,7 +187,7 @@ function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosoph
             sandbox="allow-scripts allow-same-origin"
           />
         ) : (
-          <div className="absolute inset-0 bg-zinc-950 text-zinc-300 p-6 overflow-y-auto font-mono text-sm">
+          <div className="absolute inset-0 bg-zinc-950 dark:bg-white text-zinc-300 dark:text-zinc-600 p-6 overflow-y-auto font-mono text-sm">
             <pre className="whitespace-pre-wrap break-words">{candidate.raw}</pre>
             {!candidate.isFinished && (
               <div className="flex items-center gap-2 mt-4 text-indigo-400">
@@ -201,7 +201,7 @@ function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosoph
       </div>
 
       {/* Footer / Controls */}
-      <div className="p-6 bg-white border-t border-zinc-200 shrink-0 flex flex-col gap-4 transition-all duration-300">
+      <div className="p-6 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex flex-col gap-4 transition-all duration-300">
         {showPhilosophy && (
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
@@ -209,11 +209,11 @@ function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosoph
             exit={{ opacity: 0, height: 0 }}
             className="flex-1 overflow-hidden"
           >
-            <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between">
               {t.designPhilosophy}
               {!candidate.isFinished && <span className="text-xs text-indigo-500 normal-case flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> {t.generating}</span>}
             </h3>
-            <p className="text-sm text-zinc-700 line-clamp-3 h-14 overflow-hidden" title={candidate.design_philosophy}>
+            <p className="text-sm text-zinc-700 dark:text-zinc-300 line-clamp-3 h-14 overflow-hidden" title={candidate.design_philosophy}>
               {candidate.design_philosophy || "Waiting for AI..."}
             </p>
           </motion.div>
@@ -221,7 +221,7 @@ function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosoph
         <button 
           onClick={onChoose}
           disabled={isGenerating || !candidate.isFinished}
-          className="w-full py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {t.chooseWinner}
         </button>
@@ -251,6 +251,16 @@ export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
 
   const t = translations[language] || translations['en'];
 
@@ -458,26 +468,26 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans flex flex-col">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 font-sans flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between shrink-0">
+      <header className="bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <Wand2 className="w-8 h-8 text-indigo-600" />
+          <Wand2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
           <div className="flex flex-col">
             <h1 className="text-2xl font-bold tracking-tight leading-none">Webby</h1>
-            <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t.subtitle}</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">{t.subtitle}</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {phase === 'tournament' && (
-            <div className="text-sm font-medium text-zinc-500 bg-zinc-100 px-3 py-1 rounded-full">
+            <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full">
               {t.match} {matchIndex} / {Math.max(1, rounds - 1)}
             </div>
           )}
           {phase !== 'setup' && (
             <button 
               onClick={() => setShowBracket(true)} 
-              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
             >
               <Network className="w-4 h-4" />
               {t.bracket}
@@ -485,12 +495,21 @@ export default function App() {
           )}
           
           <div className="relative">
-            <button 
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2"
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+          </div>
+
+          <div className="relative">
+            <button
               onClick={() => {
                 setTempApiKey(apiKey);
                 setShowApiKeyModal(true);
               }}
-              className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors flex items-center gap-2"
+              className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2"
               title={t.apiKey}
             >
               <Key className="w-5 h-5" />
@@ -500,7 +519,7 @@ export default function App() {
           <div className="relative">
             <button 
               onClick={() => setShowLangMenu(!showLangMenu)}
-              className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors flex items-center gap-2"
+              className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2"
             >
               <Globe className="w-5 h-5" />
               <span className="text-sm font-medium hidden sm:inline-block">
@@ -514,7 +533,7 @@ export default function App() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden z-50"
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg overflow-hidden z-50"
                 >
                   {languages.map(lang => (
                     <button
@@ -523,7 +542,7 @@ export default function App() {
                         setLanguage(lang.code);
                         setShowLangMenu(false);
                       }}
-                      className={`w-full text-left px-4 py-3 text-sm flex items-center gap-3 hover:bg-zinc-50 transition-colors ${language === lang.code ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-zinc-700'}`}
+                      className={`w-full text-left px-4 py-3 text-sm flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors ${language === lang.code ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-medium' : 'text-zinc-700 dark:text-zinc-300'}`}
                     >
                       <span className="text-lg">{lang.flag}</span>
                       {lang.name}
@@ -550,11 +569,11 @@ export default function App() {
               <div className="max-w-3xl mx-auto space-y-12">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Wand2 className="w-5 h-5 text-indigo-600" />
-                    <span className="text-sm font-bold tracking-tight text-indigo-600 uppercase">Webby</span>
+                    <Wand2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <span className="text-sm font-bold tracking-tight text-indigo-600 dark:text-indigo-400 uppercase">Webby</span>
                   </div>
                   <h2 className="text-3xl font-bold tracking-tight">{t.whatToBuild}</h2>
-                  <p className="text-zinc-500">{t.enterIdea}</p>
+                  <p className="text-zinc-500 dark:text-zinc-400">{t.enterIdea}</p>
                   
                   <div className="flex gap-4">
                     <input 
@@ -562,13 +581,13 @@ export default function App() {
                       value={initialPrompt}
                       onChange={(e) => setInitialPrompt(e.target.value)}
                       placeholder={t.placeholder}
-                      className="flex-1 px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                      className="flex-1 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
                       onKeyDown={(e) => e.key === 'Enter' && handleEnhance()}
                     />
                     <button 
                       onClick={handleEnhance}
                       disabled={isEnhancing || !initialPrompt.trim()}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                      className="px-6 py-3 bg-indigo-600 dark:bg-indigo-500 text-white dark:text-zinc-900 rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
                     >
                       {isEnhancing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wand2 className="w-5 h-5" />}
                       {t.enhancePrompt}
@@ -586,22 +605,22 @@ export default function App() {
                     <textarea 
                       value={enhancedPrompt}
                       onChange={(e) => setEnhancedPrompt(e.target.value)}
-                      className="w-full h-64 px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow resize-none font-mono text-sm leading-relaxed"
+                      className="w-full h-64 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow resize-none font-mono text-sm leading-relaxed"
                     />
                     
-                    <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm space-y-6 mt-8">
+                    <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6 mt-8">
                       <h3 className="text-lg font-semibold">{t.evolutionSettings}</h3>
                       
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <label className="font-medium text-zinc-700">{t.numGenerations}</label>
+                          <label className="font-medium text-zinc-700 dark:text-zinc-300">{t.numGenerations}</label>
                           <input 
                             type="number" 
                             min="2" 
                             max="50" 
                             value={rounds}
                             onChange={(e) => setRounds(Math.max(2, Math.min(50, parseInt(e.target.value) || 2)))}
-                            className="w-20 px-3 py-1.5 text-center border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-20 px-3 py-1.5 text-center border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
                         <input 
@@ -616,7 +635,7 @@ export default function App() {
 
                       <button 
                         onClick={startTournament}
-                        className="w-full py-4 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 flex items-center justify-center gap-2 transition-colors"
+                        className="w-full py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 flex items-center justify-center gap-2 transition-colors"
                       >
                         <Play className="w-5 h-5" />
                         {t.startGeneration}
@@ -636,7 +655,7 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative"
             >
-              <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-zinc-200">
+              <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800">
                 <CandidateView 
                   candidate={candidates?.left} 
                   onChoose={() => handleChoice('left')} 
@@ -656,7 +675,7 @@ export default function App() {
               >
                 <button 
                   onClick={() => setShowPhilosophy(!showPhilosophy)}
-                  className="p-1.5 bg-white border border-zinc-200 rounded-lg shadow-md text-zinc-500 hover:text-zinc-900 transition-colors"
+                  className="p-1.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors"
                   title={t.togglePhilosophy}
                 >
                   {showPhilosophy ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
@@ -683,27 +702,27 @@ export default function App() {
               key="result"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex-1 flex flex-col h-full bg-zinc-100"
+              className="flex-1 flex flex-col h-full bg-zinc-100 dark:bg-zinc-800"
             >
               {/* Top Bar for Result Phase */}
-              <div className="p-4 flex justify-end gap-2 bg-white border-b border-zinc-200 shrink-0">
+              <div className="p-4 flex justify-end gap-2 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
                 <button 
                   onClick={handleCopyCode}
-                  className="px-4 py-2 bg-white shadow-sm border border-zinc-200 rounded-lg text-sm font-medium hover:bg-zinc-50 flex items-center gap-2 transition-colors"
+                  className="px-4 py-2 bg-white dark:bg-zinc-950 shadow-sm border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800/50 flex items-center gap-2 transition-colors"
                 >
                   {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                   {copied ? t.copied : t.copyCode}
                 </button>
                 <button 
                   onClick={handleDownload}
-                  className="px-4 py-2 bg-indigo-600 text-white shadow-sm rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center gap-2 transition-colors"
+                  className="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white dark:text-zinc-900 shadow-sm rounded-lg text-sm font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 flex items-center gap-2 transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   {t.downloadSource}
                 </button>
                 <button 
                   onClick={restart}
-                  className="px-4 py-2 bg-zinc-900 text-white shadow-sm rounded-lg text-sm font-medium hover:bg-zinc-800 flex items-center gap-2 transition-colors ml-2"
+                  className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-sm rounded-lg text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 flex items-center gap-2 transition-colors ml-2"
                 >
                   <RefreshCw className="w-4 h-4" />
                   {t.restart}
@@ -713,7 +732,7 @@ export default function App() {
               <div className="flex-1 relative">
                 <iframe 
                   srcDoc={getIframeContent(winner, language)}
-                  className="absolute inset-0 w-full h-full border-0 bg-white"
+                  className="absolute inset-0 w-full h-full border-0 bg-white dark:bg-zinc-950"
                   title={t.finalWinnerTitle}
                   sandbox="allow-scripts allow-same-origin"
                 />
@@ -736,14 +755,14 @@ export default function App() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-zinc-50 w-full h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                className="bg-zinc-50 dark:bg-zinc-900 w-full h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden"
               >
-                <div className="p-4 bg-white border-b border-zinc-200 flex items-center justify-between shrink-0">
+                <div className="p-4 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
                   <h2 className="text-xl font-bold flex items-center gap-2">
-                    <Network className="w-5 h-5 text-indigo-600" />
+                    <Network className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     {t.bracket}
                   </h2>
-                  <button onClick={() => setShowBracket(false)} className="p-2 hover:bg-zinc-100 rounded-lg transition-colors">
+                  <button onClick={() => setShowBracket(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -760,11 +779,11 @@ export default function App() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              className="fixed inset-0 z-[60] bg-zinc-900 flex flex-col"
+              className="fixed inset-0 z-[60] bg-zinc-900 dark:bg-zinc-100 flex flex-col"
             >
-              <div className="p-4 bg-zinc-900 text-white border-b border-zinc-800 flex items-center justify-between shrink-0">
+              <div className="p-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-b border-zinc-800 dark:border-zinc-200 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setPreviewCandidate(null)} className="p-2 hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2">
+                  <button onClick={() => setPreviewCandidate(null)} className="p-2 hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-lg transition-colors flex items-center gap-2">
                     <ChevronLeft className="w-5 h-5" />
                     {t.backToBracket}
                   </button>
@@ -777,7 +796,7 @@ export default function App() {
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
                     }}
-                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    className="px-4 py-2 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                   >
                     {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                     {copied ? t.copied : t.copyCode}
@@ -792,14 +811,14 @@ export default function App() {
                       a.click();
                       URL.revokeObjectURL(url);
                     }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    className="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
                   >
                     <Download className="w-4 h-4" />
                     {t.download}
                   </button>
                 </div>
               </div>
-              <div className="flex-1 bg-white relative">
+              <div className="flex-1 bg-white dark:bg-zinc-950 relative">
                 <iframe 
                   srcDoc={getIframeContent(previewCandidate, language)}
                   className="absolute inset-0 w-full h-full border-0"
@@ -822,34 +841,34 @@ export default function App() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+                className="bg-white dark:bg-zinc-950 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
               >
                 <div className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                      <Key className="w-5 h-5 text-indigo-600" />
+                      <Key className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                       {t.apiKey}
                     </h2>
-                    <button onClick={() => setShowApiKeyModal(false)} className="p-2 hover:bg-zinc-100 rounded-lg transition-colors">
+                    <button onClick={() => setShowApiKeyModal(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700">{t.enterApiKey}</label>
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.enterApiKey}</label>
                     <input 
                       type="password"
                       value={tempApiKey}
                       onChange={(e) => setTempApiKey(e.target.value)}
                       placeholder={t.apiKeyPlaceholder}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
                       onKeyDown={(e) => e.key === 'Enter' && saveApiKey()}
                     />
                   </div>
                   
                   <button 
                     onClick={saveApiKey}
-                    className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-indigo-600 dark:bg-indigo-500 text-white dark:text-zinc-900 rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center justify-center gap-2"
                   >
                     <Check className="w-5 h-5" />
                     {t.saveApiKey}
