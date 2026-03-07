@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { enhancePrompt, generateCandidateStream, Candidate, mutateCandidateStream } from './services/openrouter';
-import { Loader2, Wand2, Play, Download, Copy, RefreshCw, ChevronRight, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key, Moon, Sun } from 'lucide-react';
+import { Loader2, Wand2, Play, Download, Copy, RefreshCw, ChevronRight, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key, Moon, Sun, ZoomIn, ZoomOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { languages, translations, getBrowserLanguage } from './i18n';
 
@@ -255,6 +255,23 @@ export default function App() {
   const [tempApiKey, setTempApiKey] = useState('');
   const [tempEnhanceModel, setTempEnhanceModel] = useState('');
   const [tempGenerateModel, setTempGenerateModel] = useState('');
+  const [bracketZoom, setBracketZoom] = useState(1);
+
+  // Set initial zoom based on rounds when opening bracket
+  useEffect(() => {
+    if (showBracket) {
+      setBracketZoom(Math.max(0.15, Math.min(1, 0.8 * (10 / rounds))));
+    }
+  }, [showBracket, rounds]);
+
+  const handleZoom = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const zoomChange = e.deltaY > 0 ? -0.1 : 0.1;
+      setBracketZoom(prev => Math.max(0.1, Math.min(2, prev + zoomChange)));
+    }
+  };
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
@@ -301,33 +318,26 @@ export default function App() {
   };
 
   function buildBracketTree(n: number): BracketNode {
-    let queue: BracketNode[] = Array.from({ length: n }, (_, i) => ({ 
-      id: `leaf-${i}`, 
-      candidate: 'generate' 
+    const leaves: BracketNode[] = Array.from({ length: n }, (_, i) => ({
+      id: `leaf-${i}`,
+      candidate: 'generate'
     }));
-    let nextQueue: BracketNode[] = [];
     let internalId = 0;
 
-    while (queue.length > 1 || nextQueue.length > 0) {
-      if (queue.length === 0) {
-        queue = nextQueue;
-        nextQueue = [];
-      } else if (queue.length === 1) {
-        nextQueue.push(queue[0]);
-        queue = [];
-      } else {
-        const left = queue.shift()!;
-        const right = queue.shift()!;
-        const parent: BracketNode = {
-          id: `match-${internalId++}`,
-          left,
-          right,
-          candidate: null
-        };
-        nextQueue.push(parent);
-      }
+    function build(nodes: BracketNode[]): BracketNode {
+      if (nodes.length === 1) return nodes[0];
+      const mid = Math.ceil(nodes.length / 2);
+      const left = build(nodes.slice(0, mid));
+      const right = build(nodes.slice(mid));
+      return {
+        id: `match-${internalId++}`,
+        left,
+        right,
+        candidate: null
+      };
     }
-    return queue[0];
+
+    return build(leaves);
   }
 
   function getNextMatch(node: BracketNode): BracketNode | null {
@@ -776,12 +786,32 @@ export default function App() {
                     <Network className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     {t.bracket}
                   </h2>
-                  <button onClick={() => setShowBracket(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setBracketZoom(prev => Math.max(0.1, Math.min(2, prev - 0.2)))}
+                      className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setBracketZoom(prev => Math.max(0.1, Math.min(2, prev + 0.2)))}
+                      className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </button>
+                    <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-2"></div>
+                    <button onClick={() => setShowBracket(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 overflow-auto p-4 md:p-8 relative">
-                  <div className="min-w-max min-h-max pb-32 pr-12 transition-transform duration-300" style={{ transformOrigin: 'top left', transform: `scale(${Math.max(0.15, Math.min(1, 0.8 * (10 / rounds)))})` }}>
+                <div
+                  className="flex-1 overflow-auto p-4 md:p-8 relative"
+                  onWheel={handleZoom}
+                >
+                  <div className="min-w-max min-h-max pb-32 pr-12 transition-transform duration-300" style={{ transformOrigin: 'top left', transform: `scale(${bracketZoom})` }}>
                     <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} />
                   </div>
                 </div>
