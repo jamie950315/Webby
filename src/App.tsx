@@ -808,11 +808,19 @@ export default function App() {
                   </div>
                 </div>
                 <div
-                  className="flex-1 overflow-auto p-4 md:p-8 relative"
+                  className="flex-1 overflow-auto bg-zinc-50 dark:bg-zinc-900 relative"
                   onWheel={handleZoom}
                 >
-                  <div className="min-w-max min-h-max pb-32 pr-12 transition-transform duration-300" style={{ transformOrigin: 'top left', transform: `scale(${bracketZoom})` }}>
-                    <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} />
+                  <div
+                    className="p-4 md:p-8 md:pt-16 pb-32 flex justify-center"
+                    style={{
+                      minWidth: '100%',
+                      width: 'max-content'
+                    }}
+                  >
+                    <div style={{ transform: `scale(${bracketZoom})`, transformOrigin: 'top center', transition: 'transform 0.3s' }}>
+                       <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} />
+                    </div>
                   </div>
                 </div>
               </motion.div>
