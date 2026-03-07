@@ -21,6 +21,33 @@ function getAI(apiKey?: string) {
   });
 }
 
+export async function generateRandomIdea(model: string, lang: string = 'en', apiKey?: string): Promise<string> {
+  const ai = getAI(apiKey);
+  try {
+    const response = await ai.chat.completions.create({
+      model: model,
+      messages: [
+        {
+          role: "user",
+          content: `Generate a single, creative, and brief website idea (max 10 words).
+IMPORTANT: Give ONLY the idea, no extra text, explanations, or quotes.
+IMPORTANT: You MUST output the response in the language code: ${lang}.
+
+Examples:
+- A coffee bean e-commerce site with dark mode
+- A personal portfolio for a frontend developer
+- A landing page for a new fitness app
+- A modern dashboard for a SaaS product`
+        }
+      ],
+    });
+    return response.choices[0]?.message?.content?.trim() || "A creative portfolio website";
+  } catch (error) {
+    console.error("Error in generateRandomIdea:", error);
+    throw error;
+  }
+}
+
 export async function enhancePrompt(initialPrompt: string, model: string, lang: string = 'en', apiKey?: string): Promise<string> {
   console.log("Enhancing prompt for:", initialPrompt);
   const ai = getAI(apiKey);

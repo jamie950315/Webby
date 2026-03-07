@@ -50,6 +50,7 @@ export const translations: Record<string, Record<string, string>> = {
     settings: 'Settings',
     enhanceModel: 'Enhance Prompt Model',
     generateModel: 'Generate Web Model',
+    luckyModel: 'Feeling Lucky Model',
   },
   'zh-TW': {
     subtitle: '演化式網站建構器',
@@ -92,6 +93,7 @@ export const translations: Record<string, Record<string, string>> = {
     settings: '設定',
     enhanceModel: '強化提示詞模型',
     generateModel: '生成網頁模型',
+    luckyModel: '好手氣模型',
   },
   'ja': {
     subtitle: '進化型ウェブサイトビルダー',
@@ -102,7 +104,7 @@ export const translations: Record<string, Record<string, string>> = {
     placeholder: '例：コーヒー豆のEコマースサイト...',
     enhancePrompt: 'AIでプロンプトを強化',
     detailedPrompt: '詳細プロンプト',
-    feelingLucky: 'I\'m Feeling Lucky',
+    feelingLucky: 'I\'m Feeling Lucky（お任せ）',
     evolutionSettings: '進化設定',
     numGenerations: '生成回数',
     startGeneration: '生成を開始',
@@ -134,6 +136,7 @@ export const translations: Record<string, Record<string, string>> = {
     settings: '設定',
     enhanceModel: 'プロンプト強化モデル',
     generateModel: 'ウェブ生成モデル',
+    luckyModel: 'お任せモデル',
   },
   'de': {
     subtitle: 'Evolutionärer Website-Builder',
@@ -176,6 +179,7 @@ export const translations: Record<string, Record<string, string>> = {
     settings: 'Einstellungen',
     enhanceModel: 'Modell für Prompt-Verbesserung',
     generateModel: 'Modell für Web-Generierung',
+    luckyModel: 'Modell für "Auf gut Glück"',
   },
   'fr': {
     subtitle: 'Constructeur de site web évolutif',
@@ -218,6 +222,7 @@ export const translations: Record<string, Record<string, string>> = {
     settings: 'Paramètres',
     enhanceModel: 'Modèle d\'amélioration de prompt',
     generateModel: 'Modèle de génération web',
+    luckyModel: 'Modèle pour \"J\'ai de la chance\"',
   },
   'es': {
     subtitle: 'Constructor de sitios web evolutivo',
@@ -260,6 +265,7 @@ export const translations: Record<string, Record<string, string>> = {
     settings: 'Ajustes',
     enhanceModel: 'Modelo de mejora de prompt',
     generateModel: 'Modelo de generación web',
+    luckyModel: 'Modelo para \"Voy a tener suerte\"',
   },
   'ru': {
     subtitle: 'Эволюционный конструктор сайтов',
@@ -302,6 +308,7 @@ export const translations: Record<string, Record<string, string>> = {
     settings: 'Настройки',
     enhanceModel: 'Модель улучшения промпта',
     generateModel: 'Модель веб-генерации',
+    luckyModel: 'Модель \"Мне повезет\"',
   }
 };
 

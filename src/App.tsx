@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { enhancePrompt, generateCandidateStream, Candidate, mutateCandidateStream } from './services/openrouter';
+import { enhancePrompt, generateCandidateStream, Candidate, mutateCandidateStream, generateRandomIdea } from './services/openrouter';
 import { Loader2, Wand2, Play, Download, Copy, RefreshCw, ChevronRight, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key, Moon, Sun, ZoomIn, ZoomOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { languages, translations, getBrowserLanguage } from './i18n';
@@ -244,10 +244,12 @@ export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [enhanceModel, setEnhanceModel] = useState(() => localStorage.getItem('enhance_model') || 'google/gemini-3-flash-preview');
   const [generateModel, setGenerateModel] = useState(() => localStorage.getItem('generate_model') || 'openai/gpt-5.4');
+  const [luckyModel, setLuckyModel] = useState(() => localStorage.getItem('lucky_model') || 'google/gemini-3-flash-preview');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
   const [tempEnhanceModel, setTempEnhanceModel] = useState('');
   const [tempGenerateModel, setTempGenerateModel] = useState('');
+  const [tempLuckyModel, setTempLuckyModel] = useState('');
   const [bracketZoom, setBracketZoom] = useState(1);
   const bracketViewportRef = useRef<HTMLDivElement>(null);
   const bracketContentRef = useRef<HTMLDivElement>(null);
@@ -376,9 +378,11 @@ export default function App() {
     localStorage.setItem('gemini_api_key', tempApiKey.trim());
     localStorage.setItem('enhance_model', tempEnhanceModel.trim() || 'google/gemini-3-flash-preview');
     localStorage.setItem('generate_model', tempGenerateModel.trim() || 'openai/gpt-5.4');
+    localStorage.setItem('lucky_model', tempLuckyModel.trim() || 'google/gemini-3-flash-preview');
     setApiKey(tempApiKey.trim());
     setEnhanceModel(tempEnhanceModel.trim() || 'google/gemini-3-flash-preview');
     setGenerateModel(tempGenerateModel.trim() || 'openai/gpt-5.4');
+    setLuckyModel(tempLuckyModel.trim() || 'google/gemini-3-flash-preview');
     setShowApiKeyModal(false);
   };
 
@@ -596,6 +600,7 @@ export default function App() {
                 setTempApiKey(apiKey);
                 setTempEnhanceModel(enhanceModel);
                 setTempGenerateModel(generateModel);
+                setTempLuckyModel(luckyModel);
                 setShowApiKeyModal(true);
               }}
               className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2"
@@ -674,16 +679,22 @@ export default function App() {
                       onKeyDown={(e) => e.key === 'Enter' && handleEnhance()}
                     />
                     <button
-                      onClick={() => {
-                        const ideas = [
-                          'A coffee bean e-commerce site with dark mode',
-                          'A personal portfolio for a frontend developer',
-                          'A landing page for a new fitness app',
-                          'A blog about sustainable living',
-                          'A modern dashboard for a SaaS product'
-                        ];
-                        const randomIdea = ideas[Math.floor(Math.random() * ideas.length)];
-                        setInitialPrompt(randomIdea);
+                      onClick={async () => {
+                        if (!apiKey) {
+                          setTempApiKey(apiKey);
+                          setTempEnhanceModel(enhanceModel);
+                          setTempGenerateModel(generateModel);
+                          setTempLuckyModel(luckyModel);
+                          setShowApiKeyModal(true);
+                          return;
+                        }
+                        try {
+                          const randomIdea = await generateRandomIdea(luckyModel, language, apiKey);
+                          setInitialPrompt(randomIdea);
+                        } catch (error) {
+                          console.error("Failed to generate random idea:", error);
+                          alert("Failed to generate random idea.");
+                        }
                       }}
                       disabled={isEnhancing}
                       className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors whitespace-nowrap"
@@ -1035,6 +1046,17 @@ export default function App() {
                         value={tempGenerateModel}
                         onChange={(e) => setTempGenerateModel(e.target.value)}
                         placeholder="openai/gpt-5.4"
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                        onKeyDown={(e) => e.key === 'Enter' && saveApiKey()}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.luckyModel || 'Feeling Lucky Model'}</label>
+                      <input
+                        type="text"
+                        value={tempLuckyModel}
+                        onChange={(e) => setTempLuckyModel(e.target.value)}
+                        placeholder="google/gemini-3-flash-preview"
                         className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
                         onKeyDown={(e) => e.key === 'Enter' && saveApiKey()}
                       />
