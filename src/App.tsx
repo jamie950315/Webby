@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { enhancePrompt, generateCandidateStream, Candidate, mutateCandidateStream } from './services/openrouter';
 import { Loader2, Wand2, Play, Download, Copy, RefreshCw, ChevronRight, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key, Moon, Sun, ZoomIn, ZoomOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -51,24 +51,17 @@ const BracketNodeComponent = ({ node, onPreview, finalWinner, isWinnerOfMatch, t
   const rightIsWinner = node.candidate && node.right?.candidate === node.candidate;
 
   return (
-    <div className="flex items-center">
-      <div className="flex flex-col justify-center pr-6 py-4 relative">
-        {/* Vertical connector lines */}
-        <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-zinc-300 dark:bg-zinc-700"></div>
-        {leftIsWinnerPath && (
-          <div className="absolute right-0 top-0 h-1/2 w-[2px] bg-orange-500 z-20"></div>
-        )}
-        {rightIsWinnerPath && (
-          <div className="absolute right-0 bottom-0 h-1/2 w-[2px] bg-orange-500 z-20"></div>
-        )}
-        
-        <div className="flex flex-col gap-4">
+    <div className="flex flex-col items-center">
+      {card}
+      <div className={`w-[2px] h-6 transition-colors duration-500 ${isFinalWinnerPath ? 'bg-orange-500 z-20' : 'bg-zinc-300 dark:bg-zinc-700'}`}></div>
+      <div className="flex flex-row justify-center relative pt-6">
+        <div className={`flex flex-col items-center relative px-4 before:content-[''] before:absolute before:top-0 before:left-1/2 before:w-[calc(50%+1rem)] before:h-[2px] before:bg-zinc-300 dark:before:bg-zinc-700 before:transition-colors before:duration-500 after:content-[''] after:absolute after:top-0 after:left-1/2 after:w-[2px] after:h-6 after:bg-zinc-300 dark:after:bg-zinc-700 after:-translate-x-1/2 after:transition-colors after:duration-500 ${leftIsWinnerPath ? 'before:!bg-orange-500 after:!bg-orange-500 before:z-20 after:z-20' : ''}`}>
           <BracketNodeComponent node={node.left!} onPreview={onPreview} finalWinner={finalWinner} isWinnerOfMatch={leftIsWinner} t={t} />
+        </div>
+        <div className={`flex flex-col items-center relative px-4 before:content-[''] before:absolute before:top-0 before:right-1/2 before:w-[calc(50%+1rem)] before:h-[2px] before:bg-zinc-300 dark:before:bg-zinc-700 before:transition-colors before:duration-500 after:content-[''] after:absolute after:top-0 after:left-1/2 after:w-[2px] after:h-6 after:bg-zinc-300 dark:after:bg-zinc-700 after:-translate-x-1/2 after:transition-colors after:duration-500 ${rightIsWinnerPath ? 'before:!bg-orange-500 after:!bg-orange-500 before:z-20 after:z-20' : ''}`}>
           <BracketNodeComponent node={node.right!} onPreview={onPreview} finalWinner={finalWinner} isWinnerOfMatch={rightIsWinner} t={t} />
         </div>
       </div>
-      <div className={`w-6 h-[2px] transition-colors duration-500 ${isFinalWinnerPath ? 'bg-orange-500' : 'bg-zinc-300 dark:bg-zinc-700'}`}></div>
-      {card}
     </div>
   );
 };
@@ -256,11 +249,16 @@ export default function App() {
   const [tempEnhanceModel, setTempEnhanceModel] = useState('');
   const [tempGenerateModel, setTempGenerateModel] = useState('');
   const [bracketZoom, setBracketZoom] = useState(1);
+  const bracketViewportRef = useRef<HTMLDivElement>(null);
+  const bracketContentRef = useRef<HTMLDivElement>(null);
+  const bracketPrevScrollSizeRef = useRef({ width: 0, height: 0 });
+  const [bracketViewportSize, setBracketViewportSize] = useState({ width: 0, height: 0 });
+  const [bracketContentSize, setBracketContentSize] = useState({ width: 0, height: 0 });
 
   // Set initial zoom based on rounds when opening bracket
   useEffect(() => {
     if (showBracket) {
-      setBracketZoom(Math.max(0.15, Math.min(1, 0.8 * (10 / rounds))));
+      setBracketZoom(Math.max(0.5, Math.min(1, 0.8 * (10 / rounds))));
     }
   }, [showBracket, rounds]);
 
@@ -268,9 +266,35 @@ export default function App() {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       const zoomChange = e.deltaY > 0 ? -0.1 : 0.1;
-      setBracketZoom(prev => Math.max(0.1, Math.min(2, prev + zoomChange)));
+      setBracketZoom(prev => Math.max(0.5, Math.min(2, prev + zoomChange)));
     }
   };
+
+  useEffect(() => {
+    if (!showBracket) return;
+
+    const viewportEl = bracketViewportRef.current;
+    const contentEl = bracketContentRef.current;
+    if (!viewportEl || !contentEl) return;
+
+    const updateMetrics = () => {
+      setBracketViewportSize({
+        width: viewportEl.clientWidth,
+        height: viewportEl.clientHeight,
+      });
+      setBracketContentSize({
+        width: contentEl.offsetWidth,
+        height: contentEl.offsetHeight,
+      });
+    };
+
+    updateMetrics();
+    const observer = new ResizeObserver(updateMetrics);
+    observer.observe(viewportEl);
+    observer.observe(contentEl);
+
+    return () => observer.disconnect();
+  }, [showBracket, bracket]);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
@@ -284,6 +308,47 @@ export default function App() {
   }, [isDarkMode]);
 
   const t = translations[language] || translations['en'];
+  const baseBracketWidth = bracketContentSize.width;
+  const baseBracketHeight = bracketContentSize.height;
+  const scaledBracketWidth = bracketContentSize.width * bracketZoom;
+  const scaledBracketHeight = bracketContentSize.height * bracketZoom;
+  const horizontalOverflowEachSide = Math.max(0, (scaledBracketWidth - baseBracketWidth) / 2);
+  const verticalOverflowDown = Math.max(0, scaledBracketHeight - baseBracketHeight);
+  const verticalCompensation = 0;
+  const horizontalPadding = Math.ceil(horizontalOverflowEachSide + 48);
+  const topPadding = 64;
+  const bottomPadding = Math.ceil(verticalOverflowDown + 128);
+  const canvasMinWidth = Math.max(bracketViewportSize.width, baseBracketWidth + horizontalPadding * 2);
+  const canvasMinHeight = Math.max(bracketViewportSize.height, baseBracketHeight + topPadding + bottomPadding);
+
+  useEffect(() => {
+    if (!showBracket) {
+      bracketPrevScrollSizeRef.current = { width: 0, height: 0 };
+    }
+  }, [showBracket]);
+
+  useLayoutEffect(() => {
+    if (!showBracket) return;
+    const viewportEl = bracketViewportRef.current;
+    if (!viewportEl) return;
+
+    const id = requestAnimationFrame(() => {
+      const prev = bracketPrevScrollSizeRef.current;
+      const nextWidth = viewportEl.scrollWidth;
+      const nextHeight = viewportEl.scrollHeight;
+
+      if (prev.width === 0 && prev.height === 0) {
+        viewportEl.scrollLeft = Math.max(0, (nextWidth - viewportEl.clientWidth) / 2);
+        viewportEl.scrollTop = 0;
+      } else {
+        viewportEl.scrollLeft += (nextWidth - prev.width) / 2;
+      }
+
+      bracketPrevScrollSizeRef.current = { width: nextWidth, height: nextHeight };
+    });
+
+    return () => cancelAnimationFrame(id);
+  }, [showBracket, bracketZoom, canvasMinWidth, canvasMinHeight]);
 
   const handleEnhance = async () => {
     if (!initialPrompt.trim()) return;
@@ -788,14 +853,14 @@ export default function App() {
                   </h2>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setBracketZoom(prev => Math.max(0.1, Math.min(2, prev - 0.2)))}
+                      onClick={() => setBracketZoom(prev => Math.max(0.5, Math.min(2, prev - 0.2)))}
                       className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
                       title="Zoom Out"
                     >
                       <ZoomOut className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => setBracketZoom(prev => Math.max(0.1, Math.min(2, prev + 0.2)))}
+                      onClick={() => setBracketZoom(prev => Math.max(0.5, Math.min(2, prev + 0.2)))}
                       className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
                       title="Zoom In"
                     >
@@ -808,18 +873,31 @@ export default function App() {
                   </div>
                 </div>
                 <div
-                  className="flex-1 overflow-auto bg-zinc-50 dark:bg-zinc-900 relative"
+                  ref={bracketViewportRef}
+                  className="flex-1 overflow-auto bg-zinc-50 dark:bg-zinc-900 overscroll-contain"
                   onWheel={handleZoom}
                 >
                   <div
-                    className="p-4 md:p-8 md:pt-16 pb-32 flex justify-center"
+                    className="grid place-items-center"
                     style={{
-                      minWidth: '100%',
-                      width: 'max-content'
+                      minWidth: canvasMinWidth || '100%',
+                      minHeight: canvasMinHeight || '100%',
+                      paddingLeft: horizontalPadding,
+                      paddingRight: horizontalPadding,
+                      paddingTop: topPadding,
+                      paddingBottom: bottomPadding,
                     }}
                   >
-                    <div style={{ transform: `scale(${bracketZoom})`, transformOrigin: 'top center', transition: 'transform 0.3s' }}>
-                       <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} />
+                    <div
+                      ref={bracketContentRef}
+                      className="inline-block will-change-transform"
+                      style={{
+                        transformOrigin: 'top center',
+                        transform: `translateY(${verticalCompensation}px) scale(${bracketZoom})`,
+                        transition: 'transform 0.3s',
+                      }}
+                    >
+                      <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} />
                     </div>
                   </div>
                 </div>
