@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import OpenAI from "openai";
 
 export interface Candidate {
   html: string;
@@ -10,26 +10,35 @@ export interface Candidate {
 }
 
 function getAI(apiKey?: string) {
-  const key = apiKey || process.env.GEMINI_API_KEY;
+  const key = apiKey || process.env.OPENROUTER_API_KEY;
   if (!key) {
-    throw new Error("Gemini API Key is missing.");
+    throw new Error("OpenRouter API Key is missing.");
   }
-  return new GoogleGenAI({ apiKey: key });
+  return new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: key,
+    dangerouslyAllowBrowser: true // often needed for client side calls
+  });
 }
 
-export async function enhancePrompt(initialPrompt: string, lang: string = 'en', apiKey?: string): Promise<string> {
+export async function enhancePrompt(initialPrompt: string, model: string, lang: string = 'en', apiKey?: string): Promise<string> {
   console.log("Enhancing prompt for:", initialPrompt);
   const ai = getAI(apiKey);
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Enhance this website idea into a detailed prompt including target audience, color scheme suggestions, essential sections (Hero, product list, footer, etc.), and interactive effects. Make it detailed but concise.
+    const response = await ai.chat.completions.create({
+      model: model,
+      messages: [
+        {
+          role: "user",
+          content: `Enhance this website idea into a detailed prompt including target audience, color scheme suggestions, essential sections (Hero, product list, footer, etc.), and interactive effects. Make it detailed but concise.
 IMPORTANT: You MUST output the response in the language code: ${lang}.
 
-Idea: ${initialPrompt}`,
+Idea: ${initialPrompt}`
+        }
+      ],
     });
     console.log("Enhance response received:", response);
-    return response.text || "Failed to generate enhanced prompt.";
+    return response.choices[0]?.message?.content || "Failed to generate enhanced prompt.";
   } catch (error) {
     console.error("Error in enhancePrompt:", error);
     throw error;
@@ -52,15 +61,19 @@ function parseStreamedResponse(accumulated: string): Candidate {
   };
 }
 
-export async function* generateCandidateStream(prompt: string, variant: 'left' | 'right', lang: string = 'en', apiKey?: string): AsyncGenerator<Candidate, void, unknown> {
+export async function* generateCandidateStream(prompt: string, variant: 'left' | 'right', model: string, lang: string = 'en', apiKey?: string): AsyncGenerator<Candidate, void, unknown> {
   const ai = getAI(apiKey);
-  const variantInstruction = variant === 'left' 
-    ? "Make this design clean, minimal, and light-themed." 
+  const variantInstruction = variant === 'left'
+    ? "Make this design clean, minimal, and light-themed."
     : "Make this design bold, vibrant, and dark-themed.";
 
-  const responseStream = await ai.models.generateContentStream({
-    model: "gemini-3-flash-preview",
-    contents: `Based on this detailed website prompt: "${prompt}". 
+  const stream = await ai.chat.completions.create({
+    model: model,
+    stream: true,
+    messages: [
+      {
+        role: "user",
+        content: `Based on this detailed website prompt: "${prompt}".
 Generate a complete, beautiful, and functional website design.
 ${variantInstruction}
 
@@ -83,31 +96,38 @@ Put custom CSS here if needed.
 
 <JS>
 Put JavaScript here if needed.
-</JS>`,
+</JS>`
+      }
+    ]
   });
 
   let accumulated = "";
-  for await (const chunk of responseStream) {
-    if (chunk.text) {
-      accumulated += chunk.text;
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      accumulated += content;
       yield parseStreamedResponse(accumulated);
     }
   }
-  
+
   const finalCandidate = parseStreamedResponse(accumulated);
   finalCandidate.isFinished = true;
   yield finalCandidate;
 }
 
-export async function* mutateCandidateStream(winner: Candidate, prompt: string, variant: 'left' | 'right', lang: string = 'en', apiKey?: string): AsyncGenerator<Candidate, void, unknown> {
+export async function* mutateCandidateStream(winner: Candidate, prompt: string, variant: 'left' | 'right', model: string, lang: string = 'en', apiKey?: string): AsyncGenerator<Candidate, void, unknown> {
   const ai = getAI(apiKey);
-  const variantInstruction = variant === 'left' 
-    ? "Make this a subtle refinement: tweak spacing, typography, and minor color shades." 
+  const variantInstruction = variant === 'left'
+    ? "Make this a subtle refinement: tweak spacing, typography, and minor color shades."
     : "Make this a bold evolution: change the layout structure, introduce new accent colors, or add dramatic interactive elements.";
 
-  const responseStream = await ai.models.generateContentStream({
-    model: "gemini-3-flash-preview",
-    contents: `Based on this winning website design for the prompt "${prompt}":
+  const stream = await ai.chat.completions.create({
+    model: model,
+    stream: true,
+    messages: [
+      {
+        role: "user",
+        content: `Based on this winning website design for the prompt "${prompt}":
 
 <PHILOSOPHY>
 ${winner.design_philosophy}
@@ -122,7 +142,7 @@ ${winner.css}
 ${winner.js}
 </JS>
 
-Create a new mutated variation of this design. 
+Create a new mutated variation of this design.
 ${variantInstruction}
 
 Assume Tailwind CSS is available via CDN.
@@ -144,17 +164,20 @@ Put custom CSS here.
 
 <JS>
 Put JavaScript here.
-</JS>`,
+</JS>`
+      }
+    ]
   });
 
   let accumulated = "";
-  for await (const chunk of responseStream) {
-    if (chunk.text) {
-      accumulated += chunk.text;
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      accumulated += content;
       yield parseStreamedResponse(accumulated);
     }
   }
-  
+
   const finalCandidate = parseStreamedResponse(accumulated);
   finalCandidate.isFinished = true;
   yield finalCandidate;

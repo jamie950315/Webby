@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { enhancePrompt, generateCandidateStream, Candidate, mutateCandidateStream } from './services/gemini';
+import { enhancePrompt, generateCandidateStream, Candidate, mutateCandidateStream } from './services/openrouter';
 import { Loader2, Wand2, Play, Download, Copy, RefreshCw, ChevronRight, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { languages, translations, getBrowserLanguage } from './i18n';
@@ -249,8 +249,12 @@ export default function App() {
   const [language, setLanguage] = useState(getBrowserLanguage());
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [enhanceModel, setEnhanceModel] = useState(() => localStorage.getItem('enhance_model') || 'google/gemini-3-flash-preview');
+  const [generateModel, setGenerateModel] = useState(() => localStorage.getItem('generate_model') || 'openai/gpt-5.4');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
+  const [tempEnhanceModel, setTempEnhanceModel] = useState('');
+  const [tempGenerateModel, setTempGenerateModel] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
@@ -267,13 +271,15 @@ export default function App() {
   const handleEnhance = async () => {
     if (!initialPrompt.trim()) return;
     if (!apiKey) {
-      setTempApiKey('');
+      setTempApiKey(apiKey);
+      setTempEnhanceModel(enhanceModel);
+      setTempGenerateModel(generateModel);
       setShowApiKeyModal(true);
       return;
     }
     setIsEnhancing(true);
     try {
-      const result = await enhancePrompt(initialPrompt, language, apiKey);
+      const result = await enhancePrompt(initialPrompt, enhanceModel, language, apiKey);
       setEnhancedPrompt(result);
     } catch (error) {
       console.error(error);
@@ -286,7 +292,11 @@ export default function App() {
   const saveApiKey = () => {
     if (!tempApiKey.trim()) return;
     localStorage.setItem('gemini_api_key', tempApiKey.trim());
+    localStorage.setItem('enhance_model', tempEnhanceModel.trim() || 'google/gemini-3-flash-preview');
+    localStorage.setItem('generate_model', tempGenerateModel.trim() || 'openai/gpt-5.4');
     setApiKey(tempApiKey.trim());
+    setEnhanceModel(tempEnhanceModel.trim() || 'google/gemini-3-flash-preview');
+    setGenerateModel(tempGenerateModel.trim() || 'openai/gpt-5.4');
     setShowApiKeyModal(false);
   };
 
@@ -346,7 +356,9 @@ export default function App() {
     const rightItem = matchNode.right!.candidate!;
 
     if (!apiKey) {
-      setTempApiKey('');
+      setTempApiKey(apiKey);
+      setTempEnhanceModel(enhanceModel);
+      setTempGenerateModel(generateModel);
       setShowApiKeyModal(true);
       setIsGenerating(false);
       return;
@@ -362,14 +374,14 @@ export default function App() {
       const promises = [];
       if (leftItem === 'generate') {
         promises.push((async () => {
-          for await (const chunk of generateCandidateStream(enhancedPrompt, 'left', language, apiKey)) {
+          for await (const chunk of generateCandidateStream(enhancedPrompt, 'left', generateModel, language, apiKey)) {
             setCandidates(prev => prev ? { ...prev, left: chunk } : null);
           }
         })());
       }
       if (rightItem === 'generate') {
         promises.push((async () => {
-          for await (const chunk of generateCandidateStream(enhancedPrompt, 'right', language, apiKey)) {
+          for await (const chunk of generateCandidateStream(enhancedPrompt, 'right', generateModel, language, apiKey)) {
             setCandidates(prev => prev ? { ...prev, right: chunk } : null);
           }
         })());
@@ -507,10 +519,12 @@ export default function App() {
             <button
               onClick={() => {
                 setTempApiKey(apiKey);
+                setTempEnhanceModel(enhanceModel);
+                setTempGenerateModel(generateModel);
                 setShowApiKeyModal(true);
               }}
               className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2"
-              title={t.apiKey}
+              title={t.settings}
             >
               <Key className="w-5 h-5" />
             </button>
@@ -847,26 +861,50 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                       <Key className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                      {t.apiKey}
+                      {t.settings}
                     </h2>
                     <button onClick={() => setShowApiKeyModal(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.enterApiKey}</label>
-                    <input 
-                      type="password"
-                      value={tempApiKey}
-                      onChange={(e) => setTempApiKey(e.target.value)}
-                      placeholder={t.apiKeyPlaceholder}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
-                      onKeyDown={(e) => e.key === 'Enter' && saveApiKey()}
-                    />
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.enterApiKey}</label>
+                      <input
+                        type="password"
+                        value={tempApiKey}
+                        onChange={(e) => setTempApiKey(e.target.value)}
+                        placeholder={t.apiKeyPlaceholder}
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.enhanceModel || 'Enhance Prompt Model'}</label>
+                      <input
+                        type="text"
+                        value={tempEnhanceModel}
+                        onChange={(e) => setTempEnhanceModel(e.target.value)}
+                        placeholder="google/gemini-3-flash-preview"
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.generateModel || 'Generate Web Model'}</label>
+                      <input
+                        type="text"
+                        value={tempGenerateModel}
+                        onChange={(e) => setTempGenerateModel(e.target.value)}
+                        placeholder="openai/gpt-5.4"
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                        onKeyDown={(e) => e.key === 'Enter' && saveApiKey()}
+                      />
+                    </div>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={saveApiKey}
                     className="w-full py-3 bg-indigo-600 dark:bg-indigo-500 text-white dark:text-zinc-900 rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors flex items-center justify-center gap-2"
                   >
