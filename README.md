@@ -4,7 +4,7 @@
 
 # Run and deploy your AI Studio app
 
-This contains everything you need to run your app locally.
+This contains everything you need to run your app locally. Webby uses OpenRouter to allow using various OpenAI-compatible models (e.g., `openai/gpt-5.4` or `google/gemini-3-flash-preview`) for prompt enhancement and code generation.
 
 View your app in AI Studio: https://ai.studio/apps/71818307-c7f7-41b0-8545-9acd3ca47c3d
 
@@ -15,6 +15,6 @@ View your app in AI Studio: https://ai.studio/apps/71818307-c7f7-41b0-8545-9acd3
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Set the `OPENROUTER_API_KEY` in [.env.local](.env.local) to your OpenRouter API key
 3. Run the app:
    `npm run dev`
