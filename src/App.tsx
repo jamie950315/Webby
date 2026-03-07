@@ -187,7 +187,7 @@ function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosoph
             sandbox="allow-scripts allow-same-origin"
           />
         ) : (
-          <div className="absolute inset-0 bg-zinc-950 dark:bg-white text-zinc-300 dark:text-zinc-600 p-6 overflow-y-auto font-mono text-sm">
+          <div className="absolute inset-0 bg-zinc-950 text-zinc-300 p-6 overflow-y-auto font-mono text-sm">
             <pre className="whitespace-pre-wrap break-words">{candidate.raw}</pre>
             {!candidate.isFinished && (
               <div className="flex items-center gap-2 mt-4 text-indigo-400">
@@ -758,14 +758,14 @@ export default function App() {
         {/* Modals outside main AnimatePresence to prevent unmounting of phase content */}
         <AnimatePresence>
           {showBracket && bracket && (
-            <motion.div 
+            <motion.div
               key="bracket-modal"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 bg-zinc-900/50 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
             >
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
@@ -780,8 +780,10 @@ export default function App() {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="flex-1 overflow-auto p-8 flex items-center justify-start min-w-max">
-                  <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} />
+                <div className="flex-1 overflow-auto p-4 md:p-8 relative">
+                  <div className="min-w-max min-h-max pb-32 pr-12 transition-transform duration-300" style={{ transformOrigin: 'top left', transform: `scale(${Math.max(0.15, Math.min(1, 0.8 * (10 / rounds)))})` }}>
+                    <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} />
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
