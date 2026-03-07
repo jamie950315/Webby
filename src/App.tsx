@@ -665,7 +665,7 @@ export default function App() {
                   <p className="text-zinc-500 dark:text-zinc-400">{t.enterIdea}</p>
                   
                   <div className="flex gap-4">
-                    <input 
+                    <input
                       type="text"
                       value={initialPrompt}
                       onChange={(e) => setInitialPrompt(e.target.value)}
@@ -673,13 +673,32 @@ export default function App() {
                       className="flex-1 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
                       onKeyDown={(e) => e.key === 'Enter' && handleEnhance()}
                     />
-                    <button 
+                    <button
+                      onClick={() => {
+                        const ideas = [
+                          'A coffee bean e-commerce site with dark mode',
+                          'A personal portfolio for a frontend developer',
+                          'A landing page for a new fitness app',
+                          'A blog about sustainable living',
+                          'A modern dashboard for a SaaS product'
+                        ];
+                        const randomIdea = ideas[Math.floor(Math.random() * ideas.length)];
+                        setInitialPrompt(randomIdea);
+                      }}
+                      disabled={isEnhancing}
+                      className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors whitespace-nowrap"
+                      title={t.feelingLucky || "I'm Feeling Lucky"}
+                    >
+                      <Wand2 className="w-5 h-5 md:mr-2" />
+                      <span className="hidden md:inline">{t.feelingLucky || "I'm Feeling Lucky"}</span>
+                    </button>
+                    <button
                       onClick={handleEnhance}
                       disabled={isEnhancing || !initialPrompt.trim()}
-                      className="px-6 py-3 bg-indigo-600 dark:bg-indigo-500 text-white dark:text-zinc-900 rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                      className="px-6 py-3 bg-indigo-600 dark:bg-indigo-500 text-white dark:text-zinc-900 rounded-xl font-medium hover:bg-indigo-700 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors whitespace-nowrap"
                     >
                       {isEnhancing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wand2 className="w-5 h-5" />}
-                      {t.enhancePrompt}
+                      <span className="hidden sm:inline">{t.enhancePrompt}</span>
                     </button>
                   </div>
                 </div>
