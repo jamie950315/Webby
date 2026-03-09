@@ -51,6 +51,7 @@ export const translations: Record<string, Record<string, string>> = {
     enhanceModel: 'Enhance Prompt Model',
     generateModel: 'Generate Web Model',
     luckyModel: 'Feeling Lucky Model',
+    recentIdeas: 'Recent Ideas',
   },
   'zh-TW': {
     subtitle: '演化式網站建構器',
@@ -94,6 +95,7 @@ export const translations: Record<string, Record<string, string>> = {
     enhanceModel: '強化提示詞模型',
     generateModel: '生成網頁模型',
     luckyModel: '好手氣模型',
+    recentIdeas: '最近的點子',
   },
   'ja': {
     subtitle: '進化型ウェブサイトビルダー',
@@ -137,6 +139,7 @@ export const translations: Record<string, Record<string, string>> = {
     enhanceModel: 'プロンプト強化モデル',
     generateModel: 'ウェブ生成モデル',
     luckyModel: 'お任せモデル',
+    recentIdeas: '最近のアイデア',
   },
   'de': {
     subtitle: 'Evolutionärer Website-Builder',
@@ -180,6 +183,7 @@ export const translations: Record<string, Record<string, string>> = {
     enhanceModel: 'Modell für Prompt-Verbesserung',
     generateModel: 'Modell für Web-Generierung',
     luckyModel: 'Modell für "Auf gut Glück"',
+    recentIdeas: 'Letzte Ideen',
   },
   'fr': {
     subtitle: 'Constructeur de site web évolutif',
@@ -223,6 +227,7 @@ export const translations: Record<string, Record<string, string>> = {
     enhanceModel: 'Modèle d\'amélioration de prompt',
     generateModel: 'Modèle de génération web',
     luckyModel: 'Modèle pour \"J\'ai de la chance\"',
+    recentIdeas: 'Idées récentes',
   },
   'es': {
     subtitle: 'Constructor de sitios web evolutivo',
@@ -266,6 +271,7 @@ export const translations: Record<string, Record<string, string>> = {
     enhanceModel: 'Modelo de mejora de prompt',
     generateModel: 'Modelo de generación web',
     luckyModel: 'Modelo para \"Voy a tener suerte\"',
+    recentIdeas: 'Ideas recientes',
   },
   'ru': {
     subtitle: 'Эволюционный конструктор сайтов',
@@ -309,6 +315,7 @@ export const translations: Record<string, Record<string, string>> = {
     enhanceModel: 'Модель улучшения промпта',
     generateModel: 'Модель веб-генерации',
     luckyModel: 'Модель \"Мне повезет\"',
+    recentIdeas: 'Недавние идеи',
   }
 };
 

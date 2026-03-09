@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { enhancePrompt, generateCandidateStream, Candidate, mutateCandidateStream, generateRandomIdea } from './services/openrouter';
-import { Loader2, Wand2, Play, Download, Copy, RefreshCw, ChevronRight, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key, Moon, Sun, ZoomIn, ZoomOut } from 'lucide-react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { enhancePrompt, generateCandidateStream, Candidate, generateRandomIdea } from './services/openrouter';
+import { saveMatch, SavedMatch } from './utils/storage';
+import { SavedMatchesList } from './components/SavedMatchesList';
+import { Loader2, Wand2, Play, Download, Copy, RefreshCw, Check, Code2, Layout, ChevronDown, ChevronUp, Network, X, ChevronLeft, Globe, Key, Moon, Sun, ZoomIn, ZoomOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { languages, translations, getBrowserLanguage } from './i18n';
+import { getIframeContent } from './utils/iframe';
 
 type Phase = 'setup' | 'tournament' | 'result';
 
@@ -13,29 +16,122 @@ type BracketNode = {
   candidate: Candidate | 'generate' | null;
 };
 
-const BracketNodeComponent = ({ node, onPreview, finalWinner, isWinnerOfMatch, t }: { 
-  node: BracketNode, 
-  onPreview: (c: Candidate) => void, 
+const bracketThumbnailCache = new Map<string, string>();
+
+function getCacheKey(candidate: Candidate) {
+  return `${candidate.html}\0${candidate.css}\0${candidate.js}`;
+}
+
+const BracketPreview = React.memo(({ candidate, lang }: { candidate: Candidate, lang: string }) => {
+  const cacheKey = getCacheKey(candidate);
+  const cached = bracketThumbnailCache.get(cacheKey);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [thumbnail, setThumbnail] = useState<string | undefined>(cached);
+
+  const srcDoc = useMemo(() => getIframeContent(candidate, lang), [candidate.html, candidate.css, candidate.js, lang]);
+
+  const capture = () => {
+    const iframe = iframeRef.current;
+    if (!iframe || bracketThumbnailCache.has(cacheKey)) return;
+    try {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      const html = new XMLSerializer().serializeToString(doc.documentElement);
+      const blob = new Blob([
+        `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768">` +
+        `<foreignObject width="100%" height="100%">${html}</foreignObject></svg>`
+      ], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 768;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            bracketThumbnailCache.set(cacheKey, dataUrl);
+            setThumbnail(dataUrl);
+          } catch { /* tainted canvas, keep iframe */ }
+        }
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => URL.revokeObjectURL(url);
+      img.src = url;
+    } catch { /* cross-origin or other error, keep iframe */ }
+  };
+
+  if (thumbnail) {
+    return (
+      <img
+        src={thumbnail}
+        className="absolute top-0 left-0 border-0"
+        style={{ width: '176px', height: '132px', objectFit: 'cover', objectPosition: 'top left' }}
+        alt="Preview"
+      />
+    );
+  }
+
+  return (
+    <iframe
+      ref={iframeRef}
+      srcDoc={srcDoc}
+      onLoad={capture}
+      className="absolute top-0 left-0 pointer-events-none border-0"
+      style={{ width: '1024px', height: '768px', transform: 'scale(0.171875)', transformOrigin: 'top left' }}
+      sandbox="allow-scripts allow-same-origin"
+      tabIndex={-1}
+      title="Preview"
+    />
+  );
+});
+
+const BracketNodeComponent = React.memo(({ node, onPreview, finalWinner, isWinnerOfMatch, t, lang }: {
+  node: BracketNode,
+  onPreview: (c: Candidate) => void,
   finalWinner?: Candidate | null,
   isWinnerOfMatch?: boolean,
-  t: Record<string, string>
+  t: Record<string, string>,
+  lang: string
 }) => {
   const isLeaf = !node.left && !node.right;
-  const isFinalWinnerPath = finalWinner && node.candidate === finalWinner;
-  
+
+  const isMatch = (c1: any, c2: any) => {
+    if (!c1 || !c2 || c1 === 'generate' || c2 === 'generate') return false;
+    if (c1 === c2) return true;
+    if (c1.id && c2.id && c1.id === c2.id) return true;
+    return c1.html === c2.html && c1.css === c2.css && c1.js === c2.js;
+  };
+
+  const isFinalWinnerPath = isMatch(node.candidate, finalWinner);
+  const hasCandidate = node.candidate && node.candidate !== 'generate';
+
   const card = (
-    <div className={`w-32 p-3 border rounded-xl shadow-sm text-center bg-white dark:bg-zinc-950 relative z-10 transition-all duration-500 
-      ${isFinalWinnerPath ? 'border-orange-500 ring-2 ring-orange-500 ring-offset-2' : 
-        isWinnerOfMatch ? 'border-green-500 ring-1 ring-green-500' : 
-        node.candidate && node.candidate !== 'generate' ? 'border-indigo-300 dark:border-indigo-500/50 ring-1 ring-indigo-300 dark:ring-indigo-500/50' : 
+    <div className={`w-44 border rounded-xl shadow-sm bg-white dark:bg-zinc-950 relative z-10 transition-all duration-500 overflow-hidden
+      ${isFinalWinnerPath ? 'border-orange-500 ring-2 ring-orange-500 ring-offset-2' :
+        isWinnerOfMatch ? 'border-green-500 ring-1 ring-green-500' :
+        hasCandidate ? 'border-indigo-300 dark:border-indigo-500/50 ring-1 ring-indigo-300 dark:ring-indigo-500/50' :
         'border-zinc-200 dark:border-zinc-800'}`}>
-      <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">{isLeaf ? t.variation : t.winner}</div>
-      {node.candidate && node.candidate !== 'generate' ? (
-        <button onClick={() => onPreview(node.candidate as Candidate)} className={`text-sm font-semibold hover:underline ${isFinalWinnerPath ? 'text-orange-600' : isWinnerOfMatch ? 'text-green-600' : 'text-indigo-600 dark:text-indigo-400'}`}>
-          {t.preview}
+      {hasCandidate ? (
+        <button onClick={() => onPreview(node.candidate as Candidate)} className="w-full text-left group">
+          <div className="relative w-full h-24 overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+            <BracketPreview candidate={node.candidate as Candidate} lang={lang} />
+            <div className="absolute inset-0 bg-transparent group-hover:bg-black/10 transition-colors" />
+          </div>
+          <div className="p-2 text-center">
+            <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{isLeaf ? t.variation : t.winner}</div>
+            <div className={`text-xs font-semibold ${isFinalWinnerPath ? 'text-orange-600' : isWinnerOfMatch ? 'text-green-600' : 'text-indigo-600 dark:text-indigo-400'}`}>
+              {t.preview}
+            </div>
+          </div>
         </button>
       ) : (
-        <div className="text-sm text-zinc-400 dark:text-zinc-500">{t.tbd}</div>
+        <div className="p-3 text-center">
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">{isLeaf ? t.variation : t.winner}</div>
+          <div className="text-sm text-zinc-400 dark:text-zinc-500">{t.tbd}</div>
+        </div>
       )}
     </div>
   );
@@ -44,80 +140,28 @@ const BracketNodeComponent = ({ node, onPreview, finalWinner, isWinnerOfMatch, t
     return card;
   }
 
-  const leftIsWinnerPath = finalWinner && node.left?.candidate === finalWinner;
-  const rightIsWinnerPath = finalWinner && node.right?.candidate === finalWinner;
-  
-  const leftIsWinner = node.candidate && node.left?.candidate === node.candidate;
-  const rightIsWinner = node.candidate && node.right?.candidate === node.candidate;
+  const leftIsWinnerPath = isMatch(node.left?.candidate, finalWinner);
+  const rightIsWinnerPath = isMatch(node.right?.candidate, finalWinner);
+
+  const leftIsWinner = isMatch(node.left?.candidate, node.candidate);
+  const rightIsWinner = isMatch(node.right?.candidate, node.candidate);
 
   return (
     <div className="flex flex-col items-center">
       {card}
       <div className={`w-[2px] h-6 transition-colors duration-500 ${isFinalWinnerPath ? 'bg-orange-500 z-20' : 'bg-zinc-300 dark:bg-zinc-700'}`}></div>
-      <div className="flex flex-row justify-center relative pt-6">
-        <div className={`flex flex-col items-center relative px-4 before:content-[''] before:absolute before:top-0 before:left-1/2 before:w-[calc(50%+1rem)] before:h-[2px] before:bg-zinc-300 dark:before:bg-zinc-700 before:transition-colors before:duration-500 after:content-[''] after:absolute after:top-0 after:left-1/2 after:w-[2px] after:h-6 after:bg-zinc-300 dark:after:bg-zinc-700 after:-translate-x-1/2 after:transition-colors after:duration-500 ${leftIsWinnerPath ? 'before:!bg-orange-500 after:!bg-orange-500 before:z-20 after:z-20' : ''}`}>
-          <BracketNodeComponent node={node.left!} onPreview={onPreview} finalWinner={finalWinner} isWinnerOfMatch={leftIsWinner} t={t} />
+      <div className="flex flex-row justify-center relative">
+        <div className={`flex flex-col items-center relative px-4 pt-6 before:content-[''] before:absolute before:top-0 before:left-1/2 before:w-[calc(50%+1rem)] before:h-[2px] before:bg-zinc-300 dark:before:bg-zinc-700 before:transition-colors before:duration-500 after:content-[''] after:absolute after:top-0 after:left-1/2 after:w-[2px] after:h-6 after:bg-zinc-300 dark:after:bg-zinc-700 after:-translate-x-1/2 after:transition-colors after:duration-500 ${leftIsWinnerPath ? 'before:!bg-orange-500 after:!bg-orange-500 before:z-20 after:z-20' : ''}`}>
+          <BracketNodeComponent node={node.left!} onPreview={onPreview} finalWinner={finalWinner} isWinnerOfMatch={leftIsWinner} t={t} lang={lang} />
         </div>
-        <div className={`flex flex-col items-center relative px-4 before:content-[''] before:absolute before:top-0 before:right-1/2 before:w-[calc(50%+1rem)] before:h-[2px] before:bg-zinc-300 dark:before:bg-zinc-700 before:transition-colors before:duration-500 after:content-[''] after:absolute after:top-0 after:left-1/2 after:w-[2px] after:h-6 after:bg-zinc-300 dark:after:bg-zinc-700 after:-translate-x-1/2 after:transition-colors after:duration-500 ${rightIsWinnerPath ? 'before:!bg-orange-500 after:!bg-orange-500 before:z-20 after:z-20' : ''}`}>
-          <BracketNodeComponent node={node.right!} onPreview={onPreview} finalWinner={finalWinner} isWinnerOfMatch={rightIsWinner} t={t} />
+        <div className={`flex flex-col items-center relative px-4 pt-6 before:content-[''] before:absolute before:top-0 before:right-1/2 before:w-[calc(50%+1rem)] before:h-[2px] before:bg-zinc-300 dark:before:bg-zinc-700 before:transition-colors before:duration-500 after:content-[''] after:absolute after:top-0 after:left-1/2 after:w-[2px] after:h-6 after:bg-zinc-300 dark:after:bg-zinc-700 after:-translate-x-1/2 after:transition-colors after:duration-500 ${rightIsWinnerPath ? 'before:!bg-orange-500 after:!bg-orange-500 before:z-20 after:z-20' : ''}`}>
+          <BracketNodeComponent node={node.right!} onPreview={onPreview} finalWinner={finalWinner} isWinnerOfMatch={rightIsWinner} t={t} lang={lang} />
         </div>
       </div>
     </div>
   );
-};
+});
 
-function getIframeContent(candidate: Candidate, lang: string) {
-  const t = translations[lang] || translations['en'];
-  return `
-<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    ${candidate.css || ''}
-    body { font-family: sans-serif; margin: 0; padding: 0; }
-  </style>
-</head>
-<body>
-  ${candidate.html || `<div class="p-4 text-gray-500">${t.generating}</div>`}
-  <script>
-    try {
-      ${candidate.js || ''}
-    } catch (e) {
-      console.error("User JS Error:", e);
-    }
-
-    // Intercept link clicks for demo purposes
-    document.addEventListener('click', function(e) {
-      const link = e.target.closest('a');
-      if (link) {
-        e.preventDefault();
-        const existingToast = document.getElementById('demo-toast');
-        if (existingToast) existingToast.remove();
-        
-        const toast = document.createElement('div');
-        toast.id = 'demo-toast';
-        toast.textContent = '${t.demoToast}';
-        toast.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #18181b; color: #fff; padding: 10px 20px; border-radius: 8px; z-index: 9999; font-family: sans-serif; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transition: opacity 0.3s ease; pointer-events: none;';
-        document.body.appendChild(toast);
-        
-        // Trigger reflow
-        void toast.offsetWidth;
-        toast.style.opacity = '1';
-        
-        setTimeout(() => {
-          toast.style.opacity = '0';
-          setTimeout(() => toast.remove(), 300);
-        }, 3000);
-      }
-    });
-  </script>
-</body>
-</html>
-  `;
-}
 
 function CandidateView({ candidate, onChoose, isGenerating, label, showPhilosophy, isWinner, t, lang }: { candidate: Candidate | undefined, onChoose: () => void, isGenerating: boolean, label: string, showPhilosophy: boolean, isWinner?: boolean, t: Record<string, string>, lang: string }) {
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
@@ -251,6 +295,7 @@ export default function App() {
   const [tempGenerateModel, setTempGenerateModel] = useState('');
   const [tempLuckyModel, setTempLuckyModel] = useState('');
   const [bracketZoom, setBracketZoom] = useState(1);
+  const [activeSaveId, setActiveSaveId] = useState<string | null>(null);
   const bracketViewportRef = useRef<HTMLDivElement>(null);
   const bracketContentRef = useRef<HTMLDivElement>(null);
   const bracketPrevScrollSizeRef = useRef({ width: 0, height: 0 });
@@ -478,7 +523,8 @@ export default function App() {
     if (!enhancedPrompt.trim()) return;
     setPhase('tournament');
     setMatchIndex(1);
-    
+    setActiveSaveId(Date.now().toString());
+
     const root = buildBracketTree(rounds);
     setBracket(root);
     const firstMatch = getNextMatch(root);
@@ -525,6 +571,106 @@ export default function App() {
     }
   };
 
+  // Auto-save logic
+  useEffect(() => {
+    if (phase !== 'setup' && activeSaveId) {
+      const snapshot: SavedMatch = {
+        id: activeSaveId,
+        updatedAt: Date.now(),
+        phase,
+        initialPrompt,
+        enhancedPrompt,
+        rounds,
+        matchIndex,
+        bracket,
+        currentMatchNodeId: currentMatchNode?.id || null,
+        candidates: candidates
+          ? {
+              left: currentMatchNode?.left?.candidate === 'generate' ? 'generate' : candidates.left,
+              right: currentMatchNode?.right?.candidate === 'generate' ? 'generate' : candidates.right,
+            }
+          : null,
+        isGenerating,
+        winner,
+      };
+      saveMatch(snapshot);
+    }
+  }, [phase, initialPrompt, enhancedPrompt, rounds, matchIndex, bracket, currentMatchNode, candidates, isGenerating, winner, activeSaveId]);
+
+  const loadMatch = (match: SavedMatch) => {
+    const findNode = (node: BracketNode | null, id: string | null): BracketNode | null => {
+      if (!node || !id) return null;
+      if (node.id === id) return node;
+      return findNode(node.left || null, id) || findNode(node.right || null, id);
+    };
+
+    const restoredBracket = match.bracket;
+    const foundNode = findNode(restoredBracket, match.currentMatchNodeId);
+
+    setInitialPrompt(match.initialPrompt);
+    setEnhancedPrompt(match.enhancedPrompt);
+    setRounds(match.rounds);
+    setMatchIndex(match.matchIndex);
+    setBracket(restoredBracket);
+    setActiveSaveId(match.id);
+    setWinner(match.winner || null);
+    setCurrentMatchNode(foundNode);
+    setPreviewCandidate(null);
+    setShowBracket(false);
+    setCopied(false);
+
+    if (match.phase === 'result' && match.winner) {
+      setPhase('result');
+      setCandidates(null);
+      setIsGenerating(false);
+      return;
+    }
+
+    setPhase('tournament');
+
+    const savedCandidates = match.candidates;
+    if (savedCandidates) {
+      setCandidates({
+        left: savedCandidates.left === 'generate'
+          ? { html: '', css: '', js: '', design_philosophy: '', raw: '', isFinished: false }
+          : savedCandidates.left,
+        right: savedCandidates.right === 'generate'
+          ? { html: '', css: '', js: '', design_philosophy: '', raw: '', isFinished: false }
+          : savedCandidates.right,
+      });
+    } else if (foundNode?.left?.candidate && foundNode?.right?.candidate) {
+      setCandidates({
+        left: foundNode.left.candidate === 'generate'
+          ? { html: '', css: '', js: '', design_philosophy: '', raw: '', isFinished: false }
+          : foundNode.left.candidate,
+        right: foundNode.right.candidate === 'generate'
+          ? { html: '', css: '', js: '', design_philosophy: '', raw: '', isFinished: false }
+          : foundNode.right.candidate,
+      });
+    } else {
+      setCandidates(null);
+    }
+
+    const needsGeneration = (candidate?: Candidate | 'generate' | null) => {
+      if (!candidate) return true;
+      if (candidate === 'generate') return true;
+      return !candidate.isFinished;
+    };
+
+    const shouldResumeGeneration = !!foundNode && (
+      !!match.isGenerating ||
+      (savedCandidates ? needsGeneration(savedCandidates.left) || needsGeneration(savedCandidates.right) : false) ||
+      (!savedCandidates && (needsGeneration(foundNode.left?.candidate ?? null) || needsGeneration(foundNode.right?.candidate ?? null)))
+    );
+
+
+    if (shouldResumeGeneration) {
+      startMatch(foundNode);
+    } else {
+      setIsGenerating(false);
+    }
+  };
+
   const handleCopyCode = () => {
     if (!winner) return;
     const code = getIframeContent(winner, language);
@@ -562,7 +708,11 @@ export default function App() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 font-sans flex flex-col">
       {/* Header */}
       <header className="bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+        <div
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={restart}
+          title="Return to home"
+        >
           <Wand2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
           <div className="flex flex-col">
             <h1 className="text-2xl font-bold tracking-tight leading-none">Webby</h1>
@@ -729,30 +879,30 @@ export default function App() {
                     
                     <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6 mt-8">
                       <h3 className="text-lg font-semibold">{t.evolutionSettings}</h3>
-                      
+
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <label className="font-medium text-zinc-700 dark:text-zinc-300">{t.numGenerations}</label>
-                          <input 
-                            type="number" 
-                            min="2" 
-                            max="50" 
+                          <input
+                            type="number"
+                            min="2"
+                            max="50"
                             value={rounds}
                             onChange={(e) => setRounds(Math.max(2, Math.min(50, parseInt(e.target.value) || 2)))}
                             className="w-20 px-3 py-1.5 text-center border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                         </div>
-                        <input 
-                          type="range" 
-                          min="2" 
-                          max="50" 
+                        <input
+                          type="range"
+                          min="2"
+                          max="50"
                           value={rounds}
                           onChange={(e) => setRounds(parseInt(e.target.value))}
                           className="w-full accent-indigo-600"
                         />
                       </div>
 
-                      <button 
+                      <button
                         onClick={startTournament}
                         className="w-full py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 flex items-center justify-center gap-2 transition-colors"
                       >
@@ -762,6 +912,8 @@ export default function App() {
                     </div>
                   </motion.div>
                 )}
+
+                <SavedMatchesList onLoadMatch={loadMatch} lang={language} />
               </div>
             </motion.div>
           )}
@@ -883,14 +1035,14 @@ export default function App() {
                   </h2>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setBracketZoom(prev => Math.max(0.5, Math.min(2, prev - 0.2)))}
+                      onClick={() => setBracketZoom((prev: number) => Math.max(0.5, Math.min(2, prev - 0.2)))}
                       className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
                       title="Zoom Out"
                     >
                       <ZoomOut className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => setBracketZoom(prev => Math.max(0.5, Math.min(2, prev + 0.2)))}
+                      onClick={() => setBracketZoom((prev: number) => Math.max(0.5, Math.min(2, prev + 0.2)))}
                       className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
                       title="Zoom In"
                     >
@@ -927,7 +1079,7 @@ export default function App() {
                         transition: 'transform 0.3s',
                       }}
                     >
-                      <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} />
+                      <BracketNodeComponent node={bracket} onPreview={(c) => setPreviewCandidate(c)} finalWinner={winner} t={t} lang={language} />
                     </div>
                   </div>
                 </div>

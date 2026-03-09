@@ -21,6 +21,30 @@ function getAI(apiKey?: string) {
   });
 }
 
+const ALL_CATEGORIES = [
+  'e-commerce store', 'personal portfolio', 'SaaS dashboard', 'landing page',
+  'social media platform', 'online game or interactive toy', 'recipe or cooking site',
+  'travel blog or planner', 'music streaming or discovery', 'art gallery or museum',
+  'weather or nature tracker', 'fitness or wellness app', 'education or course platform',
+  'news aggregator or magazine', 'real estate listings', 'job board or career site',
+  'event booking or ticketing', 'podcast directory', 'pet adoption or care',
+  'space or astronomy explorer', 'vintage or retro themed site', 'fantasy world wiki',
+  'AI-powered creative tool', 'sustainability or eco tracker', 'city guide or local explorer',
+  'book club or reading tracker', 'fashion or outfit builder', 'meditation or mindfulness',
+  'language learning app', 'cryptocurrency or finance dashboard', 'restaurant or food delivery',
+  'photography showcase', 'plant care or gardening', 'movie or TV show tracker',
+  'wedding planner', 'donation or crowdfunding', 'DIY or maker community',
+  'virtual office or coworking', 'meme generator', 'ambient sound or lo-fi player',
+  'time capsule or memory journal', 'dream diary or interpreter', 'color palette generator',
+  'typing speed test', 'horoscope or fortune teller', 'interactive storytelling',
+  'pixel art editor', 'countdown timer for events', 'habit tracker',
+];
+
+function getRandomCategories(): string {
+  const shuffled = [...ALL_CATEGORIES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 6).map(c => `- ${c}`).join('\n');
+}
+
 export async function generateRandomIdea(model: string, lang: string = 'en', apiKey?: string): Promise<string> {
   const ai = getAI(apiKey);
   try {
@@ -28,18 +52,21 @@ export async function generateRandomIdea(model: string, lang: string = 'en', api
       model: model,
       messages: [
         {
+          role: "system",
+          content: `You are a wildly creative website idea generator. You come up with unexpected, diverse, and imaginative website concepts spanning every possible category. Never repeat common ideas. Be surprising and original.`
+        },
+        {
           role: "user",
-          content: `Generate a single, creative, and brief website idea (max 10 words).
+          content: `Generate a single, creative, and brief website idea (max 12 words).
 IMPORTANT: Give ONLY the idea, no extra text, explanations, or quotes.
 IMPORTANT: You MUST output the response in the language code: ${lang}.
+IMPORTANT: Be highly varied. Pick a RANDOM category from this list and generate something unique within it:
+${getRandomCategories()}
 
-Examples:
-- A coffee bean e-commerce site with dark mode
-- A personal portfolio for a frontend developer
-- A landing page for a new fitness app
-- A modern dashboard for a SaaS product`
+Seed: ${Date.now()}-${Math.random().toString(36).slice(2)}`
         }
       ],
+      temperature: 1.2,
     });
     return response.choices[0]?.message?.content?.trim() || "A creative portfolio website";
   } catch (error) {
