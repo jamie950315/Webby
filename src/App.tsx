@@ -473,9 +473,9 @@ export default function App() {
     return null;
   }
 
-  const startMatch = async (matchNode: BracketNode) => {
+  const startMatch = async (matchNode: BracketNode, promptOverride?: string) => {
     setIsGenerating(true);
-    
+
     const leftItem = matchNode.left!.candidate!;
     const rightItem = matchNode.right!.candidate!;
 
@@ -488,6 +488,8 @@ export default function App() {
       return;
     }
 
+    const prompt = promptOverride || enhancedPrompt;
+
     const newCandidates = {
       left: leftItem === 'generate' ? { html: '', css: '', js: '', design_philosophy: '', isFinished: false, raw: '' } : leftItem,
       right: rightItem === 'generate' ? { html: '', css: '', js: '', design_philosophy: '', isFinished: false, raw: '' } : rightItem
@@ -498,14 +500,14 @@ export default function App() {
       const promises = [];
       if (leftItem === 'generate') {
         promises.push((async () => {
-          for await (const chunk of generateCandidateStream(enhancedPrompt, 'left', generateModel, language, apiKey)) {
+          for await (const chunk of generateCandidateStream(prompt, 'left', generateModel, language, apiKey)) {
             setCandidates(prev => prev ? { ...prev, left: chunk } : null);
           }
         })());
       }
       if (rightItem === 'generate') {
         promises.push((async () => {
-          for await (const chunk of generateCandidateStream(enhancedPrompt, 'right', generateModel, language, apiKey)) {
+          for await (const chunk of generateCandidateStream(prompt, 'right', generateModel, language, apiKey)) {
             setCandidates(prev => prev ? { ...prev, right: chunk } : null);
           }
         })());
@@ -665,7 +667,7 @@ export default function App() {
 
 
     if (shouldResumeGeneration) {
-      startMatch(foundNode);
+      startMatch(foundNode, match.enhancedPrompt);
     } else {
       setIsGenerating(false);
     }
